@@ -248,8 +248,8 @@ def export_onnx(model : Model, file, img_size=640, dynamic_batch=False, end2end=
 
 
 
-def cmd_quantize(weight, data, img_size, batch_size, hyp, device, ignore_policy, save_ptq, save_qat, supervision_stride, iters, eval_origin, eval_ptq, use_pycocotools):
-
+def cmd_quantize(weight, data, img_size, batch_size, hyp, device, ignore_policy, experiment, project_name, save_ptq, save_qat, supervision_stride, iters, eval_origin, eval_ptq, use_pycocotools):
+    
     with open(data) as f:
         data_dict = yaml.load(f, Loader=yaml.SafeLoader)
     is_coco = data.endswith('coco.yaml')
@@ -271,11 +271,12 @@ def cmd_quantize(weight, data, img_size, batch_size, hyp, device, ignore_policy,
     train_path = data_dict['train']
     test_path = data_dict['val']
 
-    if save_ptq and os.path.dirname(save_ptq) != "":
-        os.makedirs(os.path.dirname(save_ptq), exist_ok=True)
+    save_dir=os.path.join(experiment, project_name)
 
-    if save_qat and os.path.dirname(save_qat) != "":
-        os.makedirs(os.path.dirname(save_qat), exist_ok=True)
+    os.makedirs(save_dir, exist_ok=True)
+
+    save_ptq = os.path.join(save_dir,save_ptq)
+    save_qat = os.path.join(save_dir,save_qat)
     
     quantize.initialize()
 
@@ -291,19 +292,18 @@ def cmd_quantize(weight, data, img_size, batch_size, hyp, device, ignore_policy,
     quantize.apply_custom_rules_to_quantizer(model, export_onnx)
     quantize.calibrate_model(model, train_dataloader, device)
 
-    json_save_dir = "." if os.path.dirname(save_ptq) == "" else os.path.dirname(save_ptq)
-    summary_file = os.path.join(json_save_dir, "summary.json")
+    summary_file = os.path.join(save_dir, "summary.json")
     summary = SummaryTool(summary_file)
 
     if eval_origin:
         print("Evaluate Origin...")
         with quantize.disable_quantization(model):
-            ap = evaluate_dataset(model, val_dataloader, data, using_cocotools = using_cocotools, is_coco=is_coco, save_dir=json_save_dir )
+            ap = evaluate_dataset(model, val_dataloader, data, using_cocotools = using_cocotools, is_coco=is_coco, save_dir=save_dir )
             summary.append(["Origin", ap])
 
     if eval_ptq:
         print("Evaluate PTQ...")
-        ap = evaluate_dataset(model, val_dataloader, data, using_cocotools = using_cocotools, is_coco=is_coco, save_dir=json_save_dir )
+        ap = evaluate_dataset(model, val_dataloader, data, using_cocotools = using_cocotools, is_coco=is_coco, save_dir=save_dir )
         summary.append(["PTQ", ap])
 
     if save_ptq:
@@ -318,7 +318,7 @@ def cmd_quantize(weight, data, img_size, batch_size, hyp, device, ignore_policy,
     def per_epoch(model, epoch, lr):
 
         nonlocal best_ap
-        ap = evaluate_dataset(model, val_dataloader, data, using_cocotools = using_cocotools, is_coco=is_coco, save_dir=json_save_dir )
+        ap = evaluate_dataset(model, val_dataloader, data, using_cocotools = using_cocotools, is_coco=is_coco, save_dir=save_dir )
         summary.append([f"QAT{epoch}", ap])
 
         if ap > best_ap:
@@ -351,21 +351,32 @@ def cmd_quantize(weight, data, img_size, batch_size, hyp, device, ignore_policy,
         preprocess=preprocess, supervision_policy=supervision_policy())
 
 
-def cmd_export(weight, save, img_size, dynamic, end2end, topk_all, simplify, iou_thres, conf_thres):
+def cmd_export(weight, experiment, project_name, save, img_size, dynamic, end2end, topk_all, simplify, iou_thres, conf_thres):
     quantize.initialize()
+    
+    save_dir = os.path.join(experiment, project_name)
+    os.makedirs(save_dir, exist_ok=True)
+
     if save is None:
         name = os.path.basename(weight)
         name = name[:name.rfind('.')]
-        save = os.path.join(os.path.dirname(weight), name + ".onnx")
-        
+        save = os.path.join(save_dir, name + ".onnx")
+    else:
+        save = os.path.join(save_dir,save)
+
     export_onnx(torch.load(weight, map_location="cpu")["model"],  save, img_size, dynamic_batch=dynamic, end2end=end2end, topk_all=topk_all, simplify=simplify, iou_thres=iou_thres, conf_thres=conf_thres)
     print(f"Save onnx to {save}")
 
-def cmd_sensitive_analysis(weight, device, data, img_size, batch_size, hyp, summary_save, num_image, use_pycocotools):
+def cmd_sensitive_analysis(weight, device, data, img_size, batch_size, hyp, experiment, project_name, summary_save, num_image, use_pycocotools):
     with open(data) as f:
         data_dict = yaml.load(f, Loader=yaml.SafeLoader)
     is_coco = data.endswith('coco.yaml')
 
+
+    save_dir = os.path.join(experiment, project_name)
+    os.makedirs(save_dir, exist_ok=True)
+
+    summary_save=os.path.join(save_dir, summary_save)
     ## build coco annotation 
     if not is_coco and use_pycocotools:
         use_pycocotools = generate_custom_annotation_json(data, True)
@@ -456,12 +467,15 @@ def cmd_test(weight, device, data, img_size, batch_size, confidence, nmsthres, u
 
 
 if __name__ == "__main__":
-
+    project_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    
     parser = argparse.ArgumentParser(prog='qat.py')
     subps  = parser.add_subparsers(dest="cmd")
     exp    = subps.add_parser("export", help="Export weight to onnx file")
     exp.add_argument("weight", type=str, default="yolov7.pt", help="export pt file")
-    exp.add_argument("--save", type=str, required=False, help="export onnx file")
+    exp.add_argument("--save", type=lambda x: os.path.basename(x), required=False, help="export onnx file")
+    exp.add_argument('--experiments', default='experiments/export/', help='save to project name')
+    exp.add_argument('--project_name', default=project_name, help='save to project/name')
     exp.add_argument('--img-size', type=int, default=640, help='image sizes same for train and test')
     exp.add_argument("--dynamic", action="store_true", help="export dynamic batch")
     ### added end2end
@@ -479,8 +493,10 @@ if __name__ == "__main__":
     qat.add_argument('--hyp', type=str, default='data/hyp.scratch.p5.yaml', help='hyperparameters path')
     qat.add_argument("--device", type=str, default="cuda:0", help="device")
     qat.add_argument("--ignore-policy", type=str, default="model\.105\.m\.(.*)", help="regx")
-    qat.add_argument("--ptq", type=str, default="ptq.pt", help="file")
-    qat.add_argument("--qat", type=str, default=None, help="file")
+    qat.add_argument('--experiments', default='experiments/export/', help='save to project name')
+    qat.add_argument('--project_name', default=project_name, help='save to project/name')
+    qat.add_argument("--ptq", type=lambda x: os.path.basename(x), default="ptq.pt", help="PQT Filename")
+    qat.add_argument("--qat", type=lambda x: os.path.basename(x), default="qat.pt", help="PQT Filename")
     qat.add_argument("--supervision-stride", type=int, default=1, help="supervision stride")
     qat.add_argument("--iters", type=int, default=200, help="iters per epoch")
     qat.add_argument("--eval-origin", action="store_true", help="do eval for origin model")
@@ -495,7 +511,9 @@ if __name__ == "__main__":
     sensitive.add_argument('--batch-size', type=int, default=10, help='total batch size')
     sensitive.add_argument('--img-size', type=int, default=640, help='image sizes same for train and test')
     sensitive.add_argument('--hyp', type=str, default='data/hyp.scratch.p5.yaml', help='hyperparameters path')
-    sensitive.add_argument("--summary", type=str, default="sensitive-summary.json", help="summary save file")
+    sensitive.add_argument("--summary", type=lambda x: os.path.basename(x), default="sensitive-summary.json", help="summary save file")
+    sensitive.add_argument('--experiment', default='experiments/export/', help='save to project name')
+    sensitive.add_argument('--project_name', default=project_name, help='save to project/name')
     sensitive.add_argument("--num-image", type=int, default=None, help="number of image to evaluate")
     sensitive.add_argument("--use-pycocotools", action="store_true", help="Generate COCO annotation json format for the custom dataset")
 
@@ -514,17 +532,17 @@ if __name__ == "__main__":
     args = parser.parse_args()
     init_seeds(57)
     if args.cmd == "export":
-        cmd_export(args.weight, args.save, args.img_size, args.dynamic, args.end2end, args.topk_all, args.simplify, args.iou_thres, args.conf_thres)
+        cmd_export(args.weight, args.experiment, args.project_name, args.save, args.img_size, args.dynamic, args.end2end, args.topk_all, args.simplify, args.iou_thres, args.conf_thres)
     elif args.cmd == "quantize":
         print(args)
         cmd_quantize(
             args.weight, args.data, args.img_size, args.batch_size, 
-            args.hyp, args.device, args.ignore_policy, 
+            args.hyp, args.device, args.ignore_policy, args.experiment, args.project_name,
             args.ptq, args.qat, args.supervision_stride, args.iters,
             args.eval_origin, args.eval_ptq, args.use_pycocotools
         )
     elif args.cmd == "sensitive":
-        cmd_sensitive_analysis(args.weight, args.device, args.data, args.img_size, args.batch_size, args.hyp, args.summary, args.num_image, args.use_pycocotools)
+        cmd_sensitive_analysis(args.weight, args.device, args.data, args.img_size, args.batch_size, args.hyp, args.experiment, args.project_name, args.summary, args.num_image, args.use_pycocotools)
     elif args.cmd == "test":
         cmd_test(args.weight, args.device, args.data, args.img_size, args.batch_size, args.confidence, args.nmsthres, args.use_pycocotools)
     else:
