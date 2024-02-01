@@ -33,6 +33,10 @@ import warnings
 import argparse
 import json
 from pathlib import Path
+from datetime import datetime
+
+# ONNX
+import onnx
 
 # PyTorch
 import torch
@@ -45,8 +49,13 @@ from models.common import Conv
 from utils.datasets import create_dataloader
 from utils.google_utils import attempt_download
 from utils.general import init_seeds
+from utils.general import check_img_size
+## Yolov7 End2End
+from models.experimental import End2End
 
 import quantization.quantize as quantize
+
+from pycocotools_anno_json import build_pycocotools_anno_json
 
 # Disable all warning
 warnings.filterwarnings("ignore")
@@ -80,26 +89,56 @@ def load_yolov7_model(weight, device) -> Model:
         model.fuse()
     return model
 
+def generate_custom_annotation_json(data, use_pycocotools):
+    # Load YAML file
+    with open(data, 'r') as f:
+        data_yaml = yaml.load(f, Loader=yaml.SafeLoader) 
+    val_root_dir = os.path.join(os.path.dirname(data_yaml['val']), 'annotations_coco')
 
-def create_coco_train_dataloader(cocodir, batch_size=10):
+    os.makedirs(val_root_dir, exist_ok=True)
 
-    with open("data/hyp.scratch.p5.yaml") as f:
+    # Create the JSON file
+    annotations_json=os.path.join(val_root_dir,'custom_dataset_annotation.json')
+    if use_pycocotools:
+        # Call the function to create instances JSON
+        if os.path.exists(annotations_json):
+            print(f"Skipping generation of COCO format annotation file. The file {annotations_json} already exists.")
+            return True
+        else:
+            print(f"Generating COCO format annotation file: {annotations_json}")
+            
+            if not (build_pycocotools_anno_json(data, annotations_json)):
+                return False
+        return True
+    else:
+        if os.path.exists(annotations_json):
+            current_time = datetime.now().strftime("%Y%m%d%H%M%S")
+            annotations_json_old = os.path.join(val_root_dir, f'custom_dataset_annotation_{current_time}.json')
+            os.rename(annotations_json, annotations_json_old)
+        return False
+
+
+
+def create_train_dataloader(train_path, img_size, batch_size,hyp_path):
+
+    with open(hyp_path) as f:
         hyp = yaml.load(f, Loader=yaml.SafeLoader)  # load hyps
 
     loader = create_dataloader(
-        f"{cocodir}/train2017.txt", 
-        imgsz=640, 
+        train_path, 
+        imgsz=img_size, 
         batch_size=batch_size, 
         opt=collections.namedtuple("Opt", "single_cls")(False),
         augment=True, hyp=hyp, rect=False, cache=False, stride=32,pad=0, image_weights=False)[0]
     return loader
 
 
-def create_coco_val_dataloader(cocodir, batch_size=10, keep_images=None):
+
+def create_val_dataloader(test_path, img_size, batch_size, keep_images=None):
 
     loader = create_dataloader(
-        f"{cocodir}/val2017.txt", 
-        imgsz=640, 
+        test_path, 
+        imgsz=img_size, 
         batch_size=batch_size, 
         opt=collections.namedtuple("Opt", "single_cls")(False),
         augment=False, hyp=None, rect=True, cache=False,stride=32,pad=0.5, image_weights=False)[0]
@@ -113,38 +152,124 @@ def create_coco_val_dataloader(cocodir, batch_size=10, keep_images=None):
     return loader
 
 
-def evaluate_coco(model, dataloader, using_cocotools = False, save_dir=".", conf_thres=0.001, iou_thres=0.65):
 
+
+def evaluate_dataset(model, dataloader, data, using_cocotools = False, is_coco=False, save_dir=".", conf_thres=0.001, iou_thres=0.65):
+    
     if save_dir and os.path.dirname(save_dir) != "":
         os.makedirs(os.path.dirname(save_dir), exist_ok=True)
 
     return test.test(
-        "data/coco.yaml", 
+        data, 
         save_dir=Path(save_dir),
-        dataloader=dataloader, conf_thres=conf_thres,iou_thres=iou_thres,model=model,is_coco=True,
+        dataloader=dataloader, conf_thres=conf_thres,iou_thres=iou_thres,model=model,is_coco=is_coco,
         plots=False,half_precision=True,save_json=using_cocotools)[0][3]
+
+
+def export_onnx(model : Model, file, img_size=640, dynamic_batch=False, end2end=False, topk_all=100, simplify=False, iou_thres=0.65, conf_thres=0.45 ):
     
-
-def export_onnx(model : Model, file, size=640, dynamic_batch=False):
-
     device = next(model.parameters()).device
     model.float()
 
-    dummy = torch.zeros(1, 3, size, size, device=device)
-    model.model[-1].concat = True
-    grid_old_func = model.model[-1]._make_grid
-    model.model[-1]._make_grid = lambda *args: torch.from_numpy(grid_old_func(*args).data.numpy())
+    gs = max(int(model.stride.max()), 32)  # grid size (max stride)
+    image_check=[img_size,img_size]
+    img_size, _ = [check_img_size(x, gs) for x in image_check]  # verify img_size are gs-multiples
 
-    quantize.export_onnx(model, dummy, file, opset_version=13, 
-        input_names=["images"], output_names=["outputs"], 
-        dynamic_axes={"images": {0: "batch"}, "outputs": {0: "batch"}} if dynamic_batch else None
-    )
-    model.model[-1].concat = False
-    model.model[-1]._make_grid = grid_old_func
+    dummy = torch.zeros(1, 3, img_size, img_size, device=device)
+
+    
+    
+    if not end2end:
+        model.model[-1].concat = True
+        grid_old_func = model.model[-1]._make_grid
+        model.model[-1]._make_grid = lambda *args: torch.from_numpy(grid_old_func(*args).data.numpy())
+        quantize.export_onnx(model, dummy, file, opset_version=13, 
+            input_names=["images"], output_names=["outputs"], 
+            dynamic_axes={"images": {0: "batch"}, "outputs": {0: "batch"}} if dynamic_batch else None
+        )
+        model.model[-1].concat = False
+        model.model[-1]._make_grid = grid_old_func
+    
+    if end2end and dynamic_batch:
+        print(model.model[-1].concat)
+        model.model[-1].export = False  # set Detect() layer grid export
+        
+        grid_old_func = model.model[-1]._make_grid
+        model.model[-1]._make_grid = lambda *args: torch.from_numpy(grid_old_func(*args).data.numpy())
+
+        labels = model.names
+        batch_size = 'batch'
+
+        dynamic_axes = {
+                'images': {
+                    0: 'batch',
+                }, }
+
+        output_axes = {
+                    'num_dets': {0: 'batch'},
+                    'det_boxes': {0: 'batch'},
+                    'det_scores': {0: 'batch'},
+                    'det_classes': {0: 'batch'},
+                }
+        dynamic_axes.update(output_axes)
+
+        print('\nStarting export end2end onnx model for TensorRT...')
+        model = End2End(model,topk_all,iou_thres,conf_thres,None,device,len(labels))
+        output_names = ['num_dets', 'det_boxes', 'det_scores', 'det_classes']
+        shapes = [batch_size, 1, batch_size, topk_all, 4,
+                    batch_size, topk_all, batch_size, topk_all]
+                
+        quantize.export_onnx(model, dummy, file, opset_version=13, 
+            input_names=["images"], output_names=output_names, 
+            dynamic_axes=dynamic_axes
+        )
+        onnx_model = onnx.load(file)  # load onnx model
+        onnx.checker.check_model(onnx_model)  # check onnx model
+
+        for i in onnx_model.graph.output:
+            for j in i.type.tensor_type.shape.dim:
+                j.dim_param = str(shapes.pop(0))
+        
+        if simplify:
+            try:
+                import onnxsim
+
+                print('\nStarting to simplify ONNX...')
+                onnx_model, check = onnxsim.simplify(onnx_model)
+                assert check, 'assert check failed'
+            except Exception as e:
+                print(f'Simplifier failure: {e}')
+
+        # print(onnx.helper.printable_graph(onnx_model.graph))  # print a human readable model
+        onnx.save(onnx_model,file)
+        print('ONNX export success, saved as %s' % file)
 
 
-def cmd_quantize(weight, cocodir, device, ignore_policy, save_ptq, save_qat, supervision_stride, iters, eval_origin, eval_ptq):
-    quantize.initialize()
+
+
+
+def cmd_quantize(weight, data, img_size, batch_size, hyp, device, ignore_policy, save_ptq, save_qat, supervision_stride, iters, eval_origin, eval_ptq, use_pycocotools):
+
+    with open(data) as f:
+        data_dict = yaml.load(f, Loader=yaml.SafeLoader)
+    is_coco = data.endswith('coco.yaml')
+
+    ## build coco annotation 
+    if not is_coco and use_pycocotools:
+        use_pycocotools = generate_custom_annotation_json(data, True)
+    if not use_pycocotools:
+        use_pycocotools = generate_custom_annotation_json(data, False)
+    
+    using_cocotools=False
+    if is_coco or use_pycocotools:
+        using_cocotools=True
+
+    nc = int(data_dict['nc'])  # number of classes
+    names = data_dict['names']  # class names
+    assert len(names) == nc, '%g names found for nc=%g dataset in %s' % (len(names), nc, data)  # check
+
+    train_path = data_dict['train']
+    test_path = data_dict['val']
 
     if save_ptq and os.path.dirname(save_ptq) != "":
         os.makedirs(os.path.dirname(save_ptq), exist_ok=True)
@@ -152,10 +277,16 @@ def cmd_quantize(weight, cocodir, device, ignore_policy, save_ptq, save_qat, sup
     if save_qat and os.path.dirname(save_qat) != "":
         os.makedirs(os.path.dirname(save_qat), exist_ok=True)
     
+    quantize.initialize()
+
     device  = torch.device(device)
     model   = load_yolov7_model(weight, device)
-    train_dataloader = create_coco_train_dataloader(cocodir)
-    val_dataloader   = create_coco_val_dataloader(cocodir)
+    gs = max(int(model.stride.max()), 32)  # grid size (max stride)
+    img_check=[img_size,img_size]
+    img_size, _ = [check_img_size(x, gs) for x in img_check]  # verify img_size are gs-multiples
+    
+    train_dataloader = create_train_dataloader(train_path,img_size,batch_size, hyp)
+    val_dataloader   = create_val_dataloader(test_path,img_size, batch_size)
     quantize.replace_to_quantization_module(model, ignore_policy=ignore_policy)
     quantize.apply_custom_rules_to_quantizer(model, export_onnx)
     quantize.calibrate_model(model, train_dataloader, device)
@@ -167,12 +298,12 @@ def cmd_quantize(weight, cocodir, device, ignore_policy, save_ptq, save_qat, sup
     if eval_origin:
         print("Evaluate Origin...")
         with quantize.disable_quantization(model):
-            ap = evaluate_coco(model, val_dataloader, True, json_save_dir)
+            ap = evaluate_dataset(model, val_dataloader, data, using_cocotools = using_cocotools, is_coco=is_coco, save_dir=json_save_dir )
             summary.append(["Origin", ap])
 
     if eval_ptq:
         print("Evaluate PTQ...")
-        ap = evaluate_coco(model, val_dataloader, True, json_save_dir)
+        ap = evaluate_dataset(model, val_dataloader, data, using_cocotools = using_cocotools, is_coco=is_coco, save_dir=json_save_dir )
         summary.append(["PTQ", ap])
 
     if save_ptq:
@@ -187,7 +318,7 @@ def cmd_quantize(weight, cocodir, device, ignore_policy, save_ptq, save_qat, sup
     def per_epoch(model, epoch, lr):
 
         nonlocal best_ap
-        ap = evaluate_coco(model, val_dataloader, True, json_save_dir)
+        ap = evaluate_dataset(model, val_dataloader, data, using_cocotools = using_cocotools, is_coco=is_coco, save_dir=json_save_dir )
         summary.append([f"QAT{epoch}", ap])
 
         if ap > best_ap:
@@ -220,31 +351,56 @@ def cmd_quantize(weight, cocodir, device, ignore_policy, save_ptq, save_qat, sup
         preprocess=preprocess, supervision_policy=supervision_policy())
 
 
-def cmd_export(weight, save, size, dynamic):
-    
+def cmd_export(weight, save, img_size, dynamic, end2end, topk_all, simplify, iou_thres, conf_thres):
     quantize.initialize()
     if save is None:
         name = os.path.basename(weight)
         name = name[:name.rfind('.')]
         save = os.path.join(os.path.dirname(weight), name + ".onnx")
         
-    export_onnx(torch.load(weight, map_location="cpu")["model"], save, size, dynamic_batch=dynamic)
+    export_onnx(torch.load(weight, map_location="cpu")["model"],  save, img_size, dynamic_batch=dynamic, end2end=end2end, topk_all=topk_all, simplify=simplify, iou_thres=iou_thres, conf_thres=conf_thres)
     print(f"Save onnx to {save}")
 
+def cmd_sensitive_analysis(weight, device, data, img_size, batch_size, hyp, summary_save, num_image, use_pycocotools):
+    with open(data) as f:
+        data_dict = yaml.load(f, Loader=yaml.SafeLoader)
+    is_coco = data.endswith('coco.yaml')
 
-def cmd_sensitive_analysis(weight, device, cocodir, summary_save, num_image):
+    ## build coco annotation 
+    if not is_coco and use_pycocotools:
+        use_pycocotools = generate_custom_annotation_json(data, True)
+    if not use_pycocotools:
+        use_pycocotools = generate_custom_annotation_json(data, False)
+    
+    using_cocotools=False
+    if is_coco or use_pycocotools:
+        using_cocotools=True
+        
+    
+    nc = int(data_dict['nc'])  # number of classes
+    names = data_dict['names']  # class names
+    assert len(names) == nc, '%g names found for nc=%g dataset in %s' % (len(names), nc, data)  # check
+
+    train_path = data_dict['train']
+    test_path = data_dict['val']
 
     quantize.initialize()
     device  = torch.device(device)
     model   = load_yolov7_model(weight, device)
-    train_dataloader = create_coco_train_dataloader(cocodir)
-    val_dataloader   = create_coco_val_dataloader(cocodir, keep_images=None if num_image is None or num_image < 1 else num_image)
+
+    gs = max(int(model.stride.max()), 32)  # grid size (max stride)
+    img_check=[img_size,img_size]
+    img_size, _ = [check_img_size(x, gs) for x in img_check]  # verify img_size are gs-multiples
+    
+    train_dataloader = create_train_dataloader(train_path,img_size,batch_size, hyp)
+    val_dataloader   = create_val_dataloader(test_path,img_size, batch_size, keep_images=None if num_image is None or num_image < 1 else num_image )
+
     quantize.replace_to_quantization_module(model)
     quantize.calibrate_model(model, train_dataloader, device)
 
     summary = SummaryTool(summary_save)
     print("Evaluate PTQ...")
-    ap = evaluate_coco(model, val_dataloader)
+    ap = evaluate_dataset(model, val_dataloader, data, using_cocotools=using_cocotools, is_coco=is_coco)
     summary.append([ap, "PTQ"])
 
     print("Sensitive analysis by each layer...")
@@ -253,7 +409,7 @@ def cmd_sensitive_analysis(weight, device, cocodir, summary_save, num_image):
         if quantize.have_quantizer(layer):
             print(f"Quantization disable model.{i}")
             quantize.disable_quantization(layer).apply()
-            ap = evaluate_coco(model, val_dataloader)
+            ap = evaluate_dataset(model, val_dataloader, data, using_cocotools=using_cocotools, is_coco=is_coco)
             summary.append([ap, f"model.{i}"])
             quantize.enable_quantization(layer).apply()
         else:
@@ -265,12 +421,38 @@ def cmd_sensitive_analysis(weight, device, cocodir, summary_save, num_image):
         print(f"Top{n}: Using fp16 {name}, ap = {ap:.5f}")
 
 
-def cmd_test(weight, device, cocodir, confidence, nmsthres):
+def cmd_test(weight, device, data, img_size, batch_size, confidence, nmsthres, use_pycocotools):
+    img_size.extend([img_size[-1]] * (2 - len(img_size))) # extend to 2 sizes (train, test)
+    with open(data) as f:
+        data_dict = yaml.load(f, Loader=yaml.SafeLoader)
+    is_coco = data.endswith('coco.yaml')
+    
+    ## build coco annotation 
+    if not is_coco and use_pycocotools:
+        use_pycocotools = generate_custom_annotation_json(data, True)
+    if not use_pycocotools:
+        use_pycocotools = generate_custom_annotation_json(data, False)
+    
+    using_cocotools=False
+    if is_coco or use_pycocotools:
+        using_cocotools=True
+
+    nc = int(data_dict['nc'])  # number of classes
+    names = data_dict['names']  # class names
+    assert len(names) == nc, '%g names found for nc=%g dataset in %s' % (len(names), nc, data)  # check
+
+    train_path = data_dict['train']
+    test_path = data_dict['val']
 
     device  = torch.device(device)
     model   = load_yolov7_model(weight, device)
-    val_dataloader   = create_coco_val_dataloader(cocodir)
-    evaluate_coco(model, val_dataloader, True, conf_thres=confidence, iou_thres=nmsthres)
+    gs = max(int(model.stride.max()), 32)  # grid size (max stride)
+    img_check=[img_size,img_size]
+    img_size, _ = [check_img_size(x, gs) for x in img_check]  # verify img_size are gs-multiples
+
+    val_dataloader = create_val_dataloader(test_path,img_size, batch_size)
+    evaluate_dataset(model, val_dataloader, data,  using_cocotools=using_cocotools, is_coco=is_coco, conf_thres=confidence, iou_thres=nmsthres)
+
 
 
 if __name__ == "__main__":
@@ -280,12 +462,21 @@ if __name__ == "__main__":
     exp    = subps.add_parser("export", help="Export weight to onnx file")
     exp.add_argument("weight", type=str, default="yolov7.pt", help="export pt file")
     exp.add_argument("--save", type=str, required=False, help="export onnx file")
-    exp.add_argument("--size", type=int, default=640, help="export input size")
+    exp.add_argument('--img-size', type=int, default=640, help='image sizes same for train and test')
     exp.add_argument("--dynamic", action="store_true", help="export dynamic batch")
+    ### added end2end
+    exp.add_argument('--end2end', action='store_true', help='export end2end onnx')
+    exp.add_argument('--topk-all', type=int, default=100, help='topk objects for every images')
+    exp.add_argument('--simplify', action='store_true', help='simplify onnx model')
+    exp.add_argument('--iou-thres', type=float, default=0.45, help='iou threshold for NMS')
+    exp.add_argument('--conf-thres', type=float, default=0.25, help='conf threshold for NMS')
 
     qat = subps.add_parser("quantize", help="PTQ/QAT finetune ...")
     qat.add_argument("weight", type=str, nargs="?", default="yolov7.pt", help="weight file")
-    qat.add_argument("--cocodir", type=str, default="/datav/dataset/coco", help="coco directory")
+    qat.add_argument('--data', type=str, default='data/coco.yaml', help='data.yaml path')
+    qat.add_argument('--batch-size', type=int, default=10, help='total batch size')
+    qat.add_argument('--img-size', type=int, default=640, help='image sizes same for train and test')
+    qat.add_argument('--hyp', type=str, default='data/hyp.scratch.p5.yaml', help='hyperparameters path')
     qat.add_argument("--device", type=str, default="cuda:0", help="device")
     qat.add_argument("--ignore-policy", type=str, default="model\.105\.m\.(.*)", help="regx")
     qat.add_argument("--ptq", type=str, default="ptq.pt", help="file")
@@ -294,36 +485,47 @@ if __name__ == "__main__":
     qat.add_argument("--iters", type=int, default=200, help="iters per epoch")
     qat.add_argument("--eval-origin", action="store_true", help="do eval for origin model")
     qat.add_argument("--eval-ptq", action="store_true", help="do eval for ptq model")
+    qat.add_argument("--use-pycocotools", action="store_true", help="Generate COCO annotation format json for the custom dataset")
+    
 
     sensitive = subps.add_parser("sensitive", help="Sensitive layer analysis")
     sensitive.add_argument("weight", type=str, nargs="?", default="yolov7.pt", help="weight file")
     sensitive.add_argument("--device", type=str, default="cuda:0", help="device")
-    sensitive.add_argument("--cocodir", type=str, default="/datav/dataset/coco", help="coco directory")
+    sensitive.add_argument('--data', type=str, default='data/coco.yaml', help='data.yaml path')
+    sensitive.add_argument('--batch-size', type=int, default=10, help='total batch size')
+    sensitive.add_argument('--img-size', type=int, default=640, help='image sizes same for train and test')
+    sensitive.add_argument('--hyp', type=str, default='data/hyp.scratch.p5.yaml', help='hyperparameters path')
     sensitive.add_argument("--summary", type=str, default="sensitive-summary.json", help="summary save file")
     sensitive.add_argument("--num-image", type=int, default=None, help="number of image to evaluate")
+    sensitive.add_argument("--use-pycocotools", action="store_true", help="Generate COCO annotation json format for the custom dataset")
+
 
     testcmd = subps.add_parser("test", help="Do evaluate")
     testcmd.add_argument("weight", type=str, default="yolov7.pt", help="weight file")
-    testcmd.add_argument("--cocodir", type=str, default="/datav/dataset/coco", help="coco directory")
+    testcmd.add_argument('--data', type=str, default='data/coco.yaml', help='data.yaml path')
+    testcmd.add_argument('--batch-size', type=int, default=10, help='total batch size')
+    testcmd.add_argument('--img-size', type=int, default=640, help='image sizes same for train and test')
     testcmd.add_argument("--device", type=str, default="cuda:0", help="device")
     testcmd.add_argument("--confidence", type=float, default=0.001, help="confidence threshold")
     testcmd.add_argument("--nmsthres", type=float, default=0.65, help="nms threshold")
+    testcmd.add_argument("--use-pycocotools", action="store_true", help="Generate COCO annotation json format for the custom dataset")
+
 
     args = parser.parse_args()
     init_seeds(57)
-
     if args.cmd == "export":
-        cmd_export(args.weight, args.save, args.size, args.dynamic)
+        cmd_export(args.weight, args.save, args.img_size, args.dynamic, args.end2end, args.topk_all, args.simplify, args.iou_thres, args.conf_thres)
     elif args.cmd == "quantize":
         print(args)
         cmd_quantize(
-            args.weight, args.cocodir, args.device, args.ignore_policy, 
+            args.weight, args.data, args.img_size, args.batch_size, 
+            args.hyp, args.device, args.ignore_policy, 
             args.ptq, args.qat, args.supervision_stride, args.iters,
-            args.eval_origin, args.eval_ptq
+            args.eval_origin, args.eval_ptq, args.use_pycocotools
         )
     elif args.cmd == "sensitive":
-        cmd_sensitive_analysis(args.weight, args.device, args.cocodir, args.summary, args.num_image)
+        cmd_sensitive_analysis(args.weight, args.device, args.data, args.img_size, args.batch_size, args.hyp, args.summary, args.num_image, args.use_pycocotools)
     elif args.cmd == "test":
-        cmd_test(args.weight, args.device, args.cocodir, args.confidence, args.nmsthres)
+        cmd_test(args.weight, args.device, args.data, args.img_size, args.batch_size, args.confidence, args.nmsthres, args.use_pycocotools)
     else:
         parser.print_help()

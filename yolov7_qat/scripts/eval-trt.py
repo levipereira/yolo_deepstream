@@ -52,19 +52,29 @@ import cv2
 def time_synchronized():
     return time.time()
 
-names = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', \
-    'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant',\
-    'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', \
-    'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe',\
-    'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', \
-    'frisbee', 'skis', 'snowboard', 'sports ball', 'kite',\
-    'baseball bat', 'baseball glove', 'skateboard', 'surfboard',\
-    'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', \
-    'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli',\
-    'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch', 'potted plant',\
-    'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone',\
-    'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', \
-    'teddy bear', 'hair drier', 'toothbrush']
+
+def replace_image_ids(pred_json, custom_annotation_json):
+    # Load data from custom annotation JSON file
+    with open(custom_annotation_json, 'r') as f:
+        custom_data = json.load(f)
+
+    # Create a dictionary mapping file names to image IDs
+    file_name_to_id = {img['file_name']: img['id'] for img in custom_data['images']}
+
+    # Load data from predictions JSON file
+    with open(pred_json, 'r') as f:
+        pred_data = json.load(f)
+
+    # Replace image_ids in predictions
+    for pred in pred_data:
+        
+        file_name = pred['image_id'] + '.jpg'  # Assuming image file names in custom_dataset_annotation have extension .jpg
+        if file_name in file_name_to_id:
+            pred['image_id'] = file_name_to_id[file_name]
+    # Save the updated predictions
+    with open(pred_json, 'w') as f:
+        json.dump(pred_data, f, indent=4)
+
 
 class HostDeviceMem(object):
     def __init__(self, host_mem, device_mem):
@@ -146,13 +156,32 @@ def test(data,
     device = torch.device("cpu")
     gs = 32
 
+    save_dir="."
+
+    if save_dir and os.path.dirname(save_dir) != "":
+        os.makedirs(os.path.dirname(save_dir), exist_ok=True)
+
+    save_dir=Path(save_dir)
     # Configure
     if isinstance(data, str):
         is_coco = data.endswith('coco.yaml')
         with open(data) as f:
             data = yaml.load(f, Loader=yaml.SafeLoader)
+        anno_json='./coco/annotations/instances_val2017.json'
+        custom_dataset=False
+        if not is_coco:
+            # For custom dataset, get the annotations json path from the YAML file
+            val_root_dir = os.path.join(os.path.dirname(data['val']), 'annotations_coco')
+            anno_json = os.path.join(val_root_dir, 'custom_dataset_annotation.json')
+            # If the custom annotation file doesn't exist, fallback to the default COCO annotations
+            if not os.path.exists(anno_json):
+                anno_json = './coco/annotations/instances_val2017.json'
+            else:
+                custom_dataset=True
+
     check_dataset(data)  # check
     nc = 1 if single_cls else int(data['nc'])  # number of classes
+    names = data['names']  
     iouv = torch.linspace(0.5, 0.95, 10).to(device)  # iou vector for mAP@0.5:0.95
     niou = iouv.numel()
 
@@ -252,7 +281,7 @@ def test(data,
                 box[:, :2] -= box[:, 2:] / 2  # xy center to top-left corner
                 for p, b in zip(pred.tolist(), box.tolist()):
                     jdict.append({'image_id': image_id,
-                                  'category_id': coco91class[int(p[5])] if is_coco else int(p[5]),
+                                  'category_id': coco91class[int(p[5])] if is_coco or custom_dataset else int(p[5]),
                                   'bbox': [round(x, 3) for x in b],
                                   'score': round(p[4], 5)})
 
@@ -335,27 +364,32 @@ def test(data,
     # Save JSON
     if save_json and len(jdict):
         w = Path(engine_file).stem if engine_file is not None else ''  # weights
-        anno_json = '/datav/dataset/coco/annotations/instances_val2017.json'  # annotations json
         pred_json = str(save_dir / f"{w}_predictions.json")  # predictions json
+        print(pred_json)
+        print(anno_json)
         print('\nEvaluating pycocotools mAP... saving %s...' % pred_json)
         with open(pred_json, 'w') as f:
             json.dump(jdict, f)
+        
+        if custom_dataset:
+            print('Processing %s to make it compatible with the annotation file.' % pred_json)
+            replace_image_ids(pred_json,anno_json )
 
-        #try:  # https://github.com/cocodataset/cocoapi/blob/master/PythonAPI/pycocoEvalDemo.ipynb
-        from pycocotools.coco import COCO
-        from pycocotools.cocoeval import COCOeval
+        try:  # https://github.com/cocodataset/cocoapi/blob/master/PythonAPI/pycocoEvalDemo.ipynb
+            from pycocotools.coco import COCO
+            from pycocotools.cocoeval import COCOeval
 
-        anno = COCO(anno_json)  # init annotations api
-        pred = anno.loadRes(pred_json)  # init predictions api
-        eval = COCOeval(anno, pred, 'bbox')
-        if is_coco:
-            eval.params.imgIds = [int(Path(x).stem) for x in dataloader.img_files]  # image IDs to evaluate
-        eval.evaluate()
-        eval.accumulate()
-        eval.summarize()
-        map, map50 = eval.stats[:2]  # update results (mAP@0.5:0.95, mAP@0.5)
-        # except Exception as e:
-        #     print(f'pycocotools unable to run: {e}, {type(e)}')
+            anno = COCO(anno_json)  # init annotations api
+            pred = anno.loadRes(pred_json)  # init predictions api
+            eval = COCOeval(anno, pred, 'bbox')
+            if is_coco:
+                eval.params.imgIds = [int(Path(x).stem) for x in dataloader.img_files]  # image IDs to evaluate
+            eval.evaluate()
+            eval.accumulate()
+            eval.summarize()
+            map, map50 = eval.stats[:2]  # update results (mAP@0.5:0.95, mAP@0.5)
+        except Exception as e:
+            print(f'pycocotools unable to run: {e}, {type(e)}')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='test.py')
