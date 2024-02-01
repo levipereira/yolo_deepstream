@@ -71,6 +71,22 @@ class SummaryTool:
         json.dump(self.data, open(self.file, "w"), indent=4)
 
 
+def print_map_scores(data):
+   
+    # Extract mAP scores
+    origin_map = data[0][1]
+    ptq_map = data[1][1]
+    qat_maps = [(entry[0], entry[1]) for entry in data[2:]]
+    
+    # Find the best QAT score
+    best_qat = max(qat_maps, key=lambda x: x[1])
+    
+    # Print the results
+    print("Origin mAP@.5:.95:", origin_map)
+    print("PTQ mAP@.5:.95:", ptq_map)
+    print("Best QAT mAP@.5:.95:", best_qat[0], best_qat[1])
+
+
 # Load YoloV7 Model
 def load_yolov7_model(weight, device) -> Model:
 
@@ -320,7 +336,7 @@ def cmd_quantize(weight, data, img_size, batch_size, hyp, device, ignore_policy,
         nonlocal best_ap
         ap = evaluate_dataset(model, val_dataloader, data, using_cocotools = using_cocotools, is_coco=is_coco, save_dir=save_dir )
         summary.append([f"QAT{epoch}", ap])
-
+        print_map_scores(summary)
         if ap > best_ap:
             print(f"Save qat model to {save_qat} @ {ap:.5f}")
             best_ap = ap
@@ -467,14 +483,14 @@ def cmd_test(weight, device, data, img_size, batch_size, confidence, nmsthres, u
 
 
 if __name__ == "__main__":
-    project_name = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    project_name = datetime.now().strftime("%Y%m%d%H%M%S")
     
     parser = argparse.ArgumentParser(prog='qat.py')
     subps  = parser.add_subparsers(dest="cmd")
     exp    = subps.add_parser("export", help="Export weight to onnx file")
     exp.add_argument("weight", type=str, default="yolov7.pt", help="export pt file")
     exp.add_argument("--save", type=lambda x: os.path.basename(x), required=False, help="export onnx file")
-    exp.add_argument('--experiments', default='experiments/export/', help='save to project name')
+    exp.add_argument('--experiment', default='experiments/export/', help='save to project name')
     exp.add_argument('--project_name', default=project_name, help='save to project/name')
     exp.add_argument('--img-size', type=int, default=640, help='image sizes same for train and test')
     exp.add_argument("--dynamic", action="store_true", help="export dynamic batch")
@@ -493,7 +509,7 @@ if __name__ == "__main__":
     qat.add_argument('--hyp', type=str, default='data/hyp.scratch.p5.yaml', help='hyperparameters path')
     qat.add_argument("--device", type=str, default="cuda:0", help="device")
     qat.add_argument("--ignore-policy", type=str, default="model\.105\.m\.(.*)", help="regx")
-    qat.add_argument('--experiments', default='experiments/export/', help='save to project name')
+    qat.add_argument('--experiment', default='experiments/qat/', help='save to project name')
     qat.add_argument('--project_name', default=project_name, help='save to project/name')
     qat.add_argument("--ptq", type=lambda x: os.path.basename(x), default="ptq.pt", help="PQT Filename")
     qat.add_argument("--qat", type=lambda x: os.path.basename(x), default="qat.pt", help="PQT Filename")
@@ -512,7 +528,7 @@ if __name__ == "__main__":
     sensitive.add_argument('--img-size', type=int, default=640, help='image sizes same for train and test')
     sensitive.add_argument('--hyp', type=str, default='data/hyp.scratch.p5.yaml', help='hyperparameters path')
     sensitive.add_argument("--summary", type=lambda x: os.path.basename(x), default="sensitive-summary.json", help="summary save file")
-    sensitive.add_argument('--experiment', default='experiments/export/', help='save to project name')
+    sensitive.add_argument('--experiment', default='experiments/sensitive/', help='save to project name')
     sensitive.add_argument('--project_name', default=project_name, help='save to project/name')
     sensitive.add_argument("--num-image", type=int, default=None, help="number of image to evaluate")
     sensitive.add_argument("--use-pycocotools", action="store_true", help="Generate COCO annotation json format for the custom dataset")
