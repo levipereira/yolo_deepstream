@@ -365,8 +365,6 @@ def test(data,
     if save_json and len(jdict):
         w = Path(engine_file).stem if engine_file is not None else ''  # weights
         pred_json = str(save_dir / f"{w}_predictions.json")  # predictions json
-        print(pred_json)
-        print(anno_json)
         print('\nEvaluating pycocotools mAP... saving %s...' % pred_json)
         with open(pred_json, 'w') as f:
             json.dump(jdict, f)
