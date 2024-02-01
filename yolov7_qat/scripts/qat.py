@@ -71,20 +71,23 @@ class SummaryTool:
         json.dump(self.data, open(self.file, "w"), indent=4)
 
 
-def print_map_scores(data):
-   
-    # Extract mAP scores
-    origin_map = data[0][1]
-    ptq_map = data[1][1]
-    qat_maps = [(entry[0], entry[1]) for entry in data[2:]]
-    
-    # Find the best QAT score
-    best_qat = max(qat_maps, key=lambda x: x[1])
-    
-    # Print the results
-    print("Origin mAP@.5:.95:", origin_map)
-    print("PTQ mAP@.5:.95:", ptq_map)
-    print("Best QAT mAP@.5:.95:", best_qat[0], best_qat[1])
+def print_map_scores(file_path):
+    try:
+        with open(file_path, 'r') as file:
+            data = json.load(file)
+
+        origin_map = round(data[0][1], 4)
+        ptq_map = round(data[1][1], 4)
+        qat_maps = [(entry[0], round(entry[1], 4)) for entry in data[2:]]
+        best_qat = max(qat_maps, key=lambda x: x[1])
+
+        print("Origin mAP@.5:.95:", origin_map)
+        print("PTQ mAP@.5:.95:", ptq_map)
+        print("Best QAT mAP@.5:.95:", best_qat[0], best_qat[1])
+    except FileNotFoundError:
+        print("File not found:", file_path)
+    except json.JSONDecodeError:
+        print("Invalid JSON format in file.", file_path)
 
 
 # Load YoloV7 Model
@@ -336,7 +339,7 @@ def cmd_quantize(weight, data, img_size, batch_size, hyp, device, ignore_policy,
         nonlocal best_ap
         ap = evaluate_dataset(model, val_dataloader, data, using_cocotools = using_cocotools, is_coco=is_coco, save_dir=save_dir )
         summary.append([f"QAT{epoch}", ap])
-        print_map_scores(summary)
+        print_map_scores(summary_file)
         if ap > best_ap:
             print(f"Save qat model to {save_qat} @ {ap:.5f}")
             best_ap = ap
