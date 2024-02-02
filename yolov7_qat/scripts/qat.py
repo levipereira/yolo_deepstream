@@ -81,13 +81,15 @@ def print_map_scores(file_path):
         qat_maps = [(entry[0], round(entry[1], 4)) for entry in data[2:]]
         best_qat = max(qat_maps, key=lambda x: x[1])
 
-        print("Origin mAP@.5:.95:", origin_map)
-        print("PTQ mAP@.5:.95:", ptq_map)
-        print("Best QAT mAP@.5:.95:", best_qat[0], best_qat[1])
+        print(f"\n Origin mAP@.5:.95: {origin_map}")
+        print(f" PTQ mAP@.5:.95: {ptq_map}")
+        print(f" Best QAT mAP@.5:.95: {best_qat[0]} {best_qat[1]}")
+        print(f" Current QAT mAP@.5:.95: {qat_maps[-1][0]} {qat_maps[-1][1]}\n")
+        print()  # Adicionando uma linha em branco após o relatório
     except FileNotFoundError:
-        print("File not found:", file_path)
+        print(f"\n File not found: {file_path}")
     except json.JSONDecodeError:
-        print("Invalid JSON format in file.", file_path)
+        print(f"\n Invalid JSON format in file: {file_path}")
 
 
 # Load YoloV7 Model
@@ -210,7 +212,6 @@ def export_onnx(model : Model, file, img_size=640, dynamic_batch=False, end2end=
         model.model[-1]._make_grid = grid_old_func
     
     if end2end and dynamic_batch:
-        print(model.model[-1].concat)
         model.model[-1].export = False  # set Detect() layer grid export
         
         grid_old_func = model.model[-1]._make_grid
@@ -234,6 +235,7 @@ def export_onnx(model : Model, file, img_size=640, dynamic_batch=False, end2end=
 
         print('\nStarting export end2end onnx model for TensorRT...')
         model = End2End(model,topk_all,iou_thres,conf_thres,None,device,len(labels))
+        print("end2end")
         output_names = ['num_dets', 'det_boxes', 'det_scores', 'det_classes']
         shapes = [batch_size, 1, batch_size, topk_all, 4,
                     batch_size, topk_all, batch_size, topk_all]
@@ -334,16 +336,27 @@ def cmd_quantize(weight, data, img_size, batch_size, hyp, device, ignore_policy,
         return
 
     best_ap = 0
-    def per_epoch(model, epoch, lr):
 
+    def per_epoch(model, epoch, lr):
         nonlocal best_ap
-        ap = evaluate_dataset(model, val_dataloader, data, using_cocotools = using_cocotools, is_coco=is_coco, save_dir=save_dir )
+        ap = evaluate_dataset(model, val_dataloader, data, using_cocotools=using_cocotools, is_coco=is_coco, save_dir=save_dir)
         summary.append([f"QAT{epoch}", ap])
         print_map_scores(summary_file)
+        
         if ap > best_ap:
-            print(f"Save qat model to {save_qat} @ {ap:.5f}")
+            best_ap_int = int(best_ap * 10000)
+            save_qat_with_ap_old = os.path.splitext(save_qat)[0] + f'_best_{best_ap_int}' + os.path.splitext(save_qat)[1]
+
+            ap_int = int(ap * 10000)
+            save_qat_with_ap = os.path.splitext(save_qat)[0] + f'_best_{ap_int}' + os.path.splitext(save_qat)[1]
+
             best_ap = ap
-            torch.save({"model": model}, save_qat)
+            if os.path.exists(save_qat_with_ap_old):
+                os.remove(save_qat_with_ap_old)
+            
+            torch.save({"model": model}, save_qat_with_ap)
+            print(f"Save qat model to {save_qat_with_ap} @ {ap:.5f}")
+
 
     def preprocess(datas):
         return datas[0].to(device).float() / 255.0
@@ -452,7 +465,6 @@ def cmd_sensitive_analysis(weight, device, data, img_size, batch_size, hyp, expe
 
 
 def cmd_test(weight, device, data, img_size, batch_size, confidence, nmsthres, use_pycocotools):
-    img_size.extend([img_size[-1]] * (2 - len(img_size))) # extend to 2 sizes (train, test)
     with open(data) as f:
         data_dict = yaml.load(f, Loader=yaml.SafeLoader)
     is_coco = data.endswith('coco.yaml')
