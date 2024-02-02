@@ -81,11 +81,11 @@ def print_map_scores(file_path):
         qat_maps = [(entry[0], round(entry[1], 4)) for entry in data[2:]]
         best_qat = max(qat_maps, key=lambda x: x[1])
 
-        print(f"\n Origin mAP@.5:.95: {origin_map}")
-        print(f" PTQ mAP@.5:.95: {ptq_map}")
-        print(f" Best QAT mAP@.5:.95: {best_qat[0]} {best_qat[1]}")
-        print(f" Current QAT mAP@.5:.95: {qat_maps[-1][0]} {qat_maps[-1][1]}\n")
-        print()  # Adicionando uma linha em branco após o relatório
+        print(f"\n Result mAP@.5:.95")
+        print(f" Origin : {origin_map}")
+        print(f" PTQ : {ptq_map}")
+        print(f" Best : {best_qat[0]} {best_qat[1]}")
+        print(f" Current : {qat_maps[-1][0]} {qat_maps[-1][1]}\n")
     except FileNotFoundError:
         print(f"\n File not found: {file_path}")
     except json.JSONDecodeError:
@@ -355,7 +355,7 @@ def cmd_quantize(weight, data, img_size, batch_size, hyp, device, ignore_policy,
                 os.remove(save_qat_with_ap_old)
             
             torch.save({"model": model}, save_qat_with_ap)
-            print(f"Save qat model to {save_qat_with_ap} @ {ap:.5f}")
+            print(f"Save qat model to {save_qat_with_ap} @ {ap:.5f} \n")
 
 
     def preprocess(datas):
