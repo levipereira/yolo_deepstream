@@ -42,7 +42,7 @@ def build_pycocotools_anno_json(data_yaml, output_file_json):
         "categories": categories
     }
 
-    image_id = 1
+    image_id = ""
     annotation_id = 1
     processed_files = set()
 
@@ -55,12 +55,16 @@ def build_pycocotools_anno_json(data_yaml, output_file_json):
 
     with tqdm(total=total_images, desc="Processing Images") as pbar:
         for image_path in image_paths:
-            if os.path.exists(image_path) and image_path.endswith('.jpg'):
+            if os.path.exists(image_path):
+                _, extension = os.path.splitext(image_path)
                 image_name = os.path.splitext(os.path.basename(image_path))[0]
                 if image_name not in processed_files:
                     # Add the image to the processed files set to ensure uniqueness
                     processed_files.add(image_name)
-
+                    if image_name.isdigit():
+                        image_id=str(int(image_name))
+                    else:
+                        image_id=image_name
                     # Read image size using OpenCV
                     img = cv2.imread(image_path)
                     if img is not None:
@@ -68,7 +72,7 @@ def build_pycocotools_anno_json(data_yaml, output_file_json):
 
                         # Add image information
                         image_info = {"license": 1, 
-                                    "file_name": image_name + ".jpg", 
+                                    "file_name": image_name + extension, 
                                     "height": img_height,
                                     "width": img_width,
                                     "id": image_id}
@@ -102,8 +106,6 @@ def build_pycocotools_anno_json(data_yaml, output_file_json):
                     else:
                         print(f"Error: Failed to read image {image_path}. pycocotools will not be used.")
                         return False
-                    # Increment image ID
-                    image_id += 1
                 else:
                     print(f"Error: Image filename {image_name} is not unique to dataset. pycocotools will not be used. ")
                     return False

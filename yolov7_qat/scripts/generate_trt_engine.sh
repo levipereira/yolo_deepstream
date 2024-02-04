@@ -26,7 +26,7 @@ graph_file="${output_dir}/${file_name_no_ext}.graph"
 
 # Run trtexec command to generate engine and graph files
 trtexec --onnx="${input_file}" \
-        --saveEngine="${engine_file}" --f16 --int8 --buildOnly --memPoolSize=workspace:1024MiB \
+        --saveEngine="${engine_file}" --fp16 --int8 --buildOnly --memPoolSize=workspace:1024MiB \
         --dumpLayerInfo --exportLayerInfo="${graph_file}" --profilingVerbosity=detailed
 
 # Check if trtexec command was successful
