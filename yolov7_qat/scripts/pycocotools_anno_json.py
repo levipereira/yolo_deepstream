@@ -13,6 +13,7 @@ def yolo_to_coco_bbox(yolo_bbox, img_width, img_height):
     y_max = min(img_height, (y_center + height / 2) * img_height)
     return [x_min, y_min, x_max - x_min, y_max - y_min]
 
+
 def build_pycocotools_anno_json(data_yaml, output_file_json):
     # Load YAML file
     with open(data_yaml, 'r') as f:
