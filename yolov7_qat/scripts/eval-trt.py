@@ -64,6 +64,21 @@ class HostDeviceMem(object):
     def __repr__(self):
         return self.__str__()
 
+def convert_image_id_to_string(input_file):
+    # Read JSON data from input file
+    with open(input_file, 'r') as f:
+        data = json.load(f)
+
+    # Convert "image_id" values from int to str
+    for item in data:
+        if isinstance(item['image_id'], int):
+            item['image_id'] = str(item['image_id'])
+
+    # Write updated JSON data back to the same file
+    with open(input_file, 'w') as f:
+        json.dump(data, f, indent=4)
+
+
 def allocate_buffers(engine):
     inputs = []
     outputs = []
@@ -345,6 +360,11 @@ def test(data,
         print('\nEvaluating pycocotools mAP... saving %s...' % pred_json)
         with open(pred_json, 'w') as f:
             json.dump(jdict, f)
+        
+        if custom_dataset:
+            print("Custom Dataset: Verifying compatibility between predictions and annotation files... ")
+            convert_image_id_to_string(pred_json)
+            print("Custom Dataset: Successfully validated compatibility between predictions and annotation files. ")
         
         try:  # https://github.com/cocodataset/cocoapi/blob/master/PythonAPI/pycocoEvalDemo.ipynb
             from pycocotools.coco import COCO
