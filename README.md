@@ -1,4 +1,17 @@
-# Yolo DeepStream
+# Yolo DeepStream (with Some Enhancements)
+
+
+### This repository exclusively focuses on Enhancements to the [yolov7_qat](yolov7_qat) ###
+1. Implemented End-to-End support for ONNX export (Efficient NMS).
+2. Enabled the utilization of pycocotools with Custom Dataset.
+3. Enhanced support for reading YAML data in the Dataset (dataloader).
+4. Optimized input parameters for improved compatibility.
+5. Added experiments dir support by introducing input arguments that facilitate specifying the location for model saving.
+#### Check [yolov7_qat](yolov7_qat) for further details.  ####
+
+
+#
+
 
 ##  Description
 

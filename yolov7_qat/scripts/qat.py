@@ -506,7 +506,7 @@ if __name__ == "__main__":
     exp.add_argument("weight", type=str, default="yolov7.pt", help="export pt file")
     exp.add_argument("--save", type=lambda x: os.path.basename(x), required=False, help="export onnx file")
     exp.add_argument('--experiment', default='experiments/export/', help='save to project name')
-    exp.add_argument('--project_name', default=project_name, help='save to project/name')
+    exp.add_argument('--project-name', default=project_name, help='save to project/name')
     exp.add_argument('--img-size', type=int, default=640, help='image sizes same for train and test')
     exp.add_argument("--dynamic", action="store_true", help="export dynamic batch")
     ### added end2end
@@ -525,7 +525,7 @@ if __name__ == "__main__":
     qat.add_argument("--device", type=str, default="cuda:0", help="device")
     qat.add_argument("--ignore-policy", type=str, default="model\.105\.m\.(.*)", help="regx")
     qat.add_argument('--experiment', default='experiments/qat/', help='save to project name')
-    qat.add_argument('--project_name', default=project_name, help='save to project/name')
+    qat.add_argument('--project-name', default=project_name, help='save to project/name')
     qat.add_argument("--ptq", type=lambda x: os.path.basename(x), default="ptq.pt", help="PQT Filename")
     qat.add_argument("--qat", type=lambda x: os.path.basename(x), default="qat.pt", help="PQT Filename")
     qat.add_argument("--supervision-stride", type=int, default=1, help="supervision stride")
@@ -544,7 +544,7 @@ if __name__ == "__main__":
     sensitive.add_argument('--hyp', type=str, default='data/hyp.scratch.p5.yaml', help='hyperparameters path')
     sensitive.add_argument("--summary", type=lambda x: os.path.basename(x), default="sensitive-summary.json", help="summary save file")
     sensitive.add_argument('--experiment', default='experiments/sensitive/', help='save to project name')
-    sensitive.add_argument('--project_name', default=project_name, help='save to project/name')
+    sensitive.add_argument('--project-name', default=project_name, help='save to project/name')
     sensitive.add_argument("--num-image", type=int, default=None, help="number of image to evaluate")
     sensitive.add_argument("--use-pycocotools", action="store_true", help="Generate COCO annotation json format for the custom dataset")
 

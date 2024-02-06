@@ -1,0 +1,600 @@
+python3 scripts/qat.py quantize yolov7.pt --ptq=ptq.pt --qat=qat.pt --eval-ptq --eval-origin
+
+
+Namespace(batch_size=10, cmd='quantize', data='data/coco.yaml', device='cuda:0', eval_origin=True, eval_ptq=True, experiment='experiments/qat/', hyp='data/hyp.scratch.p5.yaml', ignore_policy='model\\.105\\.m\\.(.*)', img_size=640, iters=200, project_name='20240206202935', ptq='ptq.pt', qat='qat.pt', supervision_stride=1, use_pycocotools=False, weight='yolov7.pt')
+Fusing layers...
+RepConv.fuse_repvgg_block
+RepConv.fuse_repvgg_block
+RepConv.fuse_repvgg_block
+Scanning 'coco/train2017' images and labels... 19999 found, 191 missing, 0 empty, 0 corrupted:  17%|████████████████████████▌                                                                                                                       | 20190/118287 [00:11<00:50, 1956.57it/s]WARNING: Ignoring corrupted image and/or label coco/images/train2017/000000099844.jpg: duplicate labels
+Scanning 'coco/train2017' images and labels... 40521 found, 363 missing, 0 empty, 1 corrupted:  35%|█████████████████████████████████████████████████▊                                                                                              | 40884/118287 [00:21<00:39, 1961.16it/s]WARNING: Ignoring corrupted image and/or label coco/images/train2017/000000201706.jpg: duplicate labels
+Scanning 'coco/train2017' images and labels... 42888 found, 379 missing, 0 empty, 2 corrupted:  37%|████████████████████████████████████████████████████▋                                                                                           | 43267/118287 [00:22<00:38, 1956.93it/s]WARNING: Ignoring corrupted image and/or label coco/images/train2017/000000214087.jpg: duplicate labels
+Scanning 'coco/train2017' images and labels... 105181 found, 928 missing, 0 empty, 3 corrupted:  90%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▍              | 106109/118287 [00:55<00:06, 1951.29it/s]WARNING: Ignoring corrupted image and/or label coco/images/train2017/000000522365.jpg: duplicate labels
+Scanning 'coco/train2017' images and labels... 117266 found, 1021 missing, 0 empty, 4 corrupted: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 118287/118287 [01:02<00:00, 1902.62it/s]
+Scanning 'coco/val2017' images and labels... 4952 found, 48 missing, 0 empty, 0 corrupted: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5000/5000 [00:02<00:00, 1851.70it/s]
+Quantization: model.105.m.0 has ignored.
+Quantization: model.105.m.1 has ignored.
+Quantization: model.105.m.2 has ignored.
+========== Diagnostic Run torch.onnx.export version 1.14.0a0+44dac51 ===========
+verbose: False, log level: Level.ERROR
+======================= 0 NONE 0 NOTE 0 WARNING 0 ERROR ========================
+
+Rules: model.6.conv match to model.11.conv
+Rules: model.8.conv match to model.11.conv
+Rules: model.14.conv match to model.13.conv
+Rules: model.19.conv match to model.24.conv
+Rules: model.21.conv match to model.24.conv
+Rules: model.27.conv match to model.26.conv
+Rules: model.32.conv match to model.37.conv
+Rules: model.34.conv match to model.37.conv
+Rules: model.40.conv match to model.39.conv
+Rules: model.45.conv match to model.50.conv
+Rules: model.47.conv match to model.50.conv
+Rules: model.58.conv match to model.63.conv
+Rules: model.59.conv match to model.63.conv
+Rules: model.60.conv match to model.63.conv
+Rules: model.61.conv match to model.63.conv
+Rules: model.70.conv match to model.75.conv
+Rules: model.71.conv match to model.75.conv
+Rules: model.72.conv match to model.75.conv
+Rules: model.73.conv match to model.75.conv
+Rules: model.78.conv match to model.77.conv
+Rules: model.64.conv match to model.81.conv
+Rules: model.83.conv match to model.88.conv
+Rules: model.84.conv match to model.88.conv
+Rules: model.85.conv match to model.88.conv
+Rules: model.86.conv match to model.88.conv
+Rules: model.91.conv match to model.90.conv
+Rules: model.52.conv match to model.94.conv
+Rules: model.96.conv match to model.101.conv
+Rules: model.97.conv match to model.101.conv
+Rules: model.98.conv match to model.101.conv
+Rules: model.99.conv match to model.101.conv
+Collect stats for calibrating: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 25/25 [00:12<00:00,  2.05it/s]
+Evaluate Origin...
+               Class      Images      Labels           P           R      mAP@.5  mAP@.5:.95: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 500/500 [00:45<00:00, 10.89it/s]
+                 all        5000       36335       0.723       0.635       0.691       0.497
+
+Evaluating pycocotools mAP... saving experiments/qat/20240206202935/_predictions.json...
+loading annotations into memory...
+Done (t=0.74s)
+creating index...
+index created!
+Loading and preparing results...
+DONE (t=3.39s)
+creating index...
+index created!
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=51.76s).
+Accumulating evaluation results...
+DONE (t=7.28s).
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.512
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.697
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.555
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.352
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.559
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.667
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.384
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.637
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.687
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.537
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.735
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.838
+Evaluate PTQ...
+               Class      Images      Labels           P           R      mAP@.5  mAP@.5:.95: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 500/500 [01:00<00:00,  8.23it/s]
+                 all        5000       36335       0.732       0.628       0.689       0.496
+
+Evaluating pycocotools mAP... saving experiments/qat/20240206202935/_predictions.json...
+loading annotations into memory...
+Done (t=0.70s)
+creating index...
+index created!
+Loading and preparing results...
+DONE (t=2.74s)
+creating index...
+index created!
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=50.96s).
+Accumulating evaluation results...
+DONE (t=7.15s).
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.510
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.696
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.554
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.344
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.559
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.665
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.385
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.636
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.686
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.535
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.735
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.837
+Save ptq model to experiments/qat/20240206202935/ptq.pt
+Supervision: model.0 will compute loss with origin model during QAT training
+Supervision: model.1 will compute loss with origin model during QAT training
+Supervision: model.2 will compute loss with origin model during QAT training
+Supervision: model.3 will compute loss with origin model during QAT training
+Supervision: model.4 will compute loss with origin model during QAT training
+Supervision: model.5 will compute loss with origin model during QAT training
+Supervision: model.6 will compute loss with origin model during QAT training
+Supervision: model.7 will compute loss with origin model during QAT training
+Supervision: model.8 will compute loss with origin model during QAT training
+Supervision: model.9 will compute loss with origin model during QAT training
+Supervision: model.10 will compute loss with origin model during QAT training
+Supervision: model.11 will compute loss with origin model during QAT training
+Supervision: model.12 will compute loss with origin model during QAT training
+Supervision: model.13 will compute loss with origin model during QAT training
+Supervision: model.14 will compute loss with origin model during QAT training
+Supervision: model.15 will compute loss with origin model during QAT training
+Supervision: model.16 will compute loss with origin model during QAT training
+Supervision: model.17 will compute loss with origin model during QAT training
+Supervision: model.18 will compute loss with origin model during QAT training
+Supervision: model.19 will compute loss with origin model during QAT training
+Supervision: model.20 will compute loss with origin model during QAT training
+Supervision: model.21 will compute loss with origin model during QAT training
+Supervision: model.22 will compute loss with origin model during QAT training
+Supervision: model.23 will compute loss with origin model during QAT training
+Supervision: model.24 will compute loss with origin model during QAT training
+Supervision: model.25 will compute loss with origin model during QAT training
+Supervision: model.26 will compute loss with origin model during QAT training
+Supervision: model.27 will compute loss with origin model during QAT training
+Supervision: model.28 will compute loss with origin model during QAT training
+Supervision: model.29 will compute loss with origin model during QAT training
+Supervision: model.30 will compute loss with origin model during QAT training
+Supervision: model.31 will compute loss with origin model during QAT training
+Supervision: model.32 will compute loss with origin model during QAT training
+Supervision: model.33 will compute loss with origin model during QAT training
+Supervision: model.34 will compute loss with origin model during QAT training
+Supervision: model.35 will compute loss with origin model during QAT training
+Supervision: model.36 will compute loss with origin model during QAT training
+Supervision: model.37 will compute loss with origin model during QAT training
+Supervision: model.38 will compute loss with origin model during QAT training
+Supervision: model.39 will compute loss with origin model during QAT training
+Supervision: model.40 will compute loss with origin model during QAT training
+Supervision: model.41 will compute loss with origin model during QAT training
+Supervision: model.42 will compute loss with origin model during QAT training
+Supervision: model.43 will compute loss with origin model during QAT training
+Supervision: model.44 will compute loss with origin model during QAT training
+Supervision: model.45 will compute loss with origin model during QAT training
+Supervision: model.46 will compute loss with origin model during QAT training
+Supervision: model.47 will compute loss with origin model during QAT training
+Supervision: model.48 will compute loss with origin model during QAT training
+Supervision: model.49 will compute loss with origin model during QAT training
+Supervision: model.50 will compute loss with origin model during QAT training
+Supervision: model.51 will compute loss with origin model during QAT training
+Supervision: model.52 will compute loss with origin model during QAT training
+Supervision: model.53 will compute loss with origin model during QAT training
+Supervision: model.54 will compute loss with origin model during QAT training
+Supervision: model.55 will compute loss with origin model during QAT training
+Supervision: model.56 will compute loss with origin model during QAT training
+Supervision: model.57 will compute loss with origin model during QAT training
+Supervision: model.58 will compute loss with origin model during QAT training
+Supervision: model.59 will compute loss with origin model during QAT training
+Supervision: model.60 will compute loss with origin model during QAT training
+Supervision: model.61 will compute loss with origin model during QAT training
+Supervision: model.62 will compute loss with origin model during QAT training
+Supervision: model.63 will compute loss with origin model during QAT training
+Supervision: model.64 will compute loss with origin model during QAT training
+Supervision: model.65 will compute loss with origin model during QAT training
+Supervision: model.66 will compute loss with origin model during QAT training
+Supervision: model.67 will compute loss with origin model during QAT training
+Supervision: model.68 will compute loss with origin model during QAT training
+Supervision: model.69 will compute loss with origin model during QAT training
+Supervision: model.70 will compute loss with origin model during QAT training
+Supervision: model.71 will compute loss with origin model during QAT training
+Supervision: model.72 will compute loss with origin model during QAT training
+Supervision: model.73 will compute loss with origin model during QAT training
+Supervision: model.74 will compute loss with origin model during QAT training
+Supervision: model.75 will compute loss with origin model during QAT training
+Supervision: model.76 will compute loss with origin model during QAT training
+Supervision: model.77 will compute loss with origin model during QAT training
+Supervision: model.78 will compute loss with origin model during QAT training
+Supervision: model.79 will compute loss with origin model during QAT training
+Supervision: model.80 will compute loss with origin model during QAT training
+Supervision: model.81 will compute loss with origin model during QAT training
+Supervision: model.82 will compute loss with origin model during QAT training
+Supervision: model.83 will compute loss with origin model during QAT training
+Supervision: model.84 will compute loss with origin model during QAT training
+Supervision: model.85 will compute loss with origin model during QAT training
+Supervision: model.86 will compute loss with origin model during QAT training
+Supervision: model.87 will compute loss with origin model during QAT training
+Supervision: model.88 will compute loss with origin model during QAT training
+Supervision: model.89 will compute loss with origin model during QAT training
+Supervision: model.90 will compute loss with origin model during QAT training
+Supervision: model.91 will compute loss with origin model during QAT training
+Supervision: model.92 will compute loss with origin model during QAT training
+Supervision: model.93 will compute loss with origin model during QAT training
+Supervision: model.94 will compute loss with origin model during QAT training
+Supervision: model.95 will compute loss with origin model during QAT training
+Supervision: model.96 will compute loss with origin model during QAT training
+Supervision: model.97 will compute loss with origin model during QAT training
+Supervision: model.98 will compute loss with origin model during QAT training
+Supervision: model.99 will compute loss with origin model during QAT training
+Supervision: model.100 will compute loss with origin model during QAT training
+Supervision: model.101 will compute loss with origin model during QAT training
+Supervision: model.102 will compute loss with origin model during QAT training
+Supervision: model.103 will compute loss with origin model during QAT training
+Supervision: model.104 will compute loss with origin model during QAT training
+Supervision: model.105 no compute loss during QAT training, that is unsupervised only and doesn't mean don't learn
+QAT Finetuning 1 / 10, Loss: 0.50287, LR: 1e-06: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 200/200 [00:52<00:00,  3.80it/s]
+               Class      Images      Labels           P           R      mAP@.5  mAP@.5:.95: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 500/500 [01:03<00:00,  7.89it/s]
+                 all        5000       36335       0.736       0.626       0.689       0.495
+
+Evaluating pycocotools mAP... saving experiments/qat/20240206202935/_predictions.json...
+loading annotations into memory...
+Done (t=0.47s)
+creating index...
+index created!
+Loading and preparing results...
+DONE (t=3.20s)
+creating index...
+index created!
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=51.11s).
+Accumulating evaluation results...
+DONE (t=7.36s).
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.510
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.696
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.552
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.346
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.559
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.664
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.384
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.636
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.686
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.536
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.736
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.836
+
+ Result mAP@.5:.95
+ Origin : 0.5117
+ PTQ : 0.5099
+ Best : QAT0 0.5099
+ Current : QAT0 0.5099
+
+Save qat model to experiments/qat/20240206202935/qat_best_5098.pt @ 0.50989
+
+QAT Finetuning 2 / 10, Loss: 0.48254, LR: 1e-06: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 200/200 [00:49<00:00,  4.07it/s]
+               Class      Images      Labels           P           R      mAP@.5  mAP@.5:.95: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 500/500 [01:02<00:00,  7.96it/s]
+                 all        5000       36335       0.712       0.641       0.689       0.495
+
+Evaluating pycocotools mAP... saving experiments/qat/20240206202935/_predictions.json...
+loading annotations into memory...
+Done (t=0.73s)
+creating index...
+index created!
+Loading and preparing results...
+DONE (t=3.43s)
+creating index...
+index created!
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=50.24s).
+Accumulating evaluation results...
+DONE (t=8.52s).
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.510
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.696
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.552
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.345
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.559
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.665
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.384
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.636
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.686
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.536
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.735
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.836
+
+ Result mAP@.5:.95
+ Origin : 0.5117
+ PTQ : 0.5099
+ Best : QAT0 0.5099
+ Current : QAT1 0.5097
+
+QAT Finetuning 3 / 10, Loss: 0.66244, LR: 1e-06: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 200/200 [00:49<00:00,  4.08it/s]
+               Class      Images      Labels           P           R      mAP@.5  mAP@.5:.95: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 500/500 [01:02<00:00,  8.05it/s]
+                 all        5000       36335       0.712       0.641       0.689       0.496
+
+Evaluating pycocotools mAP... saving experiments/qat/20240206202935/_predictions.json...
+loading annotations into memory...
+Done (t=0.43s)
+creating index...
+index created!
+Loading and preparing results...
+DONE (t=3.24s)
+creating index...
+index created!
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=51.30s).
+Accumulating evaluation results...
+DONE (t=7.31s).
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.510
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.696
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.552
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.351
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.559
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.666
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.384
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.636
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.687
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.536
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.736
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.837
+
+ Result mAP@.5:.95
+ Origin : 0.5117
+ PTQ : 0.5099
+ Best : QAT2 0.5104
+ Current : QAT2 0.5104
+
+Save qat model to experiments/qat/20240206202935/qat_best_5104.pt @ 0.51044
+
+QAT Finetuning 4 / 10, Loss: 0.50263, LR: 1e-05: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 200/200 [00:49<00:00,  4.07it/s]
+               Class      Images      Labels           P           R      mAP@.5  mAP@.5:.95: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 500/500 [01:02<00:00,  7.96it/s]
+                 all        5000       36335       0.721       0.635       0.689       0.496
+
+Evaluating pycocotools mAP... saving experiments/qat/20240206202935/_predictions.json...
+loading annotations into memory...
+Done (t=0.74s)
+creating index...
+index created!
+Loading and preparing results...
+DONE (t=2.74s)
+creating index...
+index created!
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=50.88s).
+Accumulating evaluation results...
+DONE (t=8.48s).
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.510
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.696
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.552
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.346
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.559
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.665
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.384
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.636
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.686
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.535
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.735
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.837
+
+ Result mAP@.5:.95
+ Origin : 0.5117
+ PTQ : 0.5099
+ Best : QAT2 0.5104
+ Current : QAT3 0.5103
+
+QAT Finetuning 5 / 10, Loss: 0.40467, LR: 1e-05: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 200/200 [00:49<00:00,  4.07it/s]
+               Class      Images      Labels           P           R      mAP@.5  mAP@.5:.95: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 500/500 [01:02<00:00,  8.06it/s]
+                 all        5000       36335       0.724       0.634       0.689       0.496
+
+Evaluating pycocotools mAP... saving experiments/qat/20240206202935/_predictions.json...
+loading annotations into memory...
+Done (t=0.42s)
+creating index...
+index created!
+Loading and preparing results...
+DONE (t=3.25s)
+creating index...
+index created!
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=51.37s).
+Accumulating evaluation results...
+DONE (t=7.37s).
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.510
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.696
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.553
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.347
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.559
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.665
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.384
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.636
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.686
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.536
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.735
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.838
+
+ Result mAP@.5:.95
+ Origin : 0.5117
+ PTQ : 0.5099
+ Best : QAT2 0.5104
+ Current : QAT4 0.5103
+
+QAT Finetuning 6 / 10, Loss: 0.39066, LR: 1e-05: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 200/200 [00:49<00:00,  4.07it/s]
+               Class      Images      Labels           P           R      mAP@.5  mAP@.5:.95: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 500/500 [01:03<00:00,  7.93it/s]
+                 all        5000       36335       0.725       0.633       0.688       0.496
+
+Evaluating pycocotools mAP... saving experiments/qat/20240206202935/_predictions.json...
+loading annotations into memory...
+Done (t=0.73s)
+creating index...
+index created!
+Loading and preparing results...
+DONE (t=3.43s)
+creating index...
+index created!
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=51.49s).
+Accumulating evaluation results...
+DONE (t=7.38s).
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.511
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.695
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.553
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.353
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.559
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.665
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.383
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.637
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.687
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.536
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.736
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.838
+
+ Result mAP@.5:.95
+ Origin : 0.5117
+ PTQ : 0.5099
+ Best : QAT5 0.5107
+ Current : QAT5 0.5107
+
+Save qat model to experiments/qat/20240206202935/qat_best_5106.pt @ 0.51066
+
+QAT Finetuning 7 / 10, Loss: 0.44330, LR: 1e-05: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 200/200 [00:49<00:00,  4.06it/s]
+               Class      Images      Labels           P           R      mAP@.5  mAP@.5:.95: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 500/500 [01:02<00:00,  8.04it/s]
+                 all        5000       36335       0.723       0.633       0.689       0.495
+
+Evaluating pycocotools mAP... saving experiments/qat/20240206202935/_predictions.json...
+loading annotations into memory...
+Done (t=0.74s)
+creating index...
+index created!
+Loading and preparing results...
+DONE (t=2.76s)
+creating index...
+index created!
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=50.65s).
+Accumulating evaluation results...
+DONE (t=7.25s).
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.510
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.696
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.552
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.352
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.559
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.664
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.383
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.635
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.685
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.531
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.734
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.840
+
+ Result mAP@.5:.95
+ Origin : 0.5117
+ PTQ : 0.5099
+ Best : QAT5 0.5107
+ Current : QAT6 0.5098
+
+QAT Finetuning 8 / 10, Loss: 0.38512, LR: 1e-05: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 200/200 [00:49<00:00,  4.08it/s]
+               Class      Images      Labels           P           R      mAP@.5  mAP@.5:.95: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 500/500 [01:03<00:00,  7.89it/s]
+                 all        5000       36335       0.736       0.627       0.689       0.496
+
+Evaluating pycocotools mAP... saving experiments/qat/20240206202935/_predictions.json...
+loading annotations into memory...
+Done (t=0.74s)
+creating index...
+index created!
+Loading and preparing results...
+DONE (t=2.79s)
+creating index...
+index created!
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=50.76s).
+Accumulating evaluation results...
+DONE (t=7.21s).
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.510
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.696
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.551
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.353
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.558
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.664
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.384
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.636
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.686
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.536
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.734
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.837
+
+ Result mAP@.5:.95
+ Origin : 0.5117
+ PTQ : 0.5099
+ Best : QAT5 0.5107
+ Current : QAT7 0.5099
+
+QAT Finetuning 9 / 10, Loss: 0.33848, LR: 1e-06: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 200/200 [00:49<00:00,  4.08it/s]
+               Class      Images      Labels           P           R      mAP@.5  mAP@.5:.95: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 500/500 [01:03<00:00,  7.91it/s]
+                 all        5000       36335       0.724       0.634        0.69       0.496
+
+Evaluating pycocotools mAP... saving experiments/qat/20240206202935/_predictions.json...
+loading annotations into memory...
+Done (t=0.43s)
+creating index...
+index created!
+Loading and preparing results...
+DONE (t=3.41s)
+creating index...
+index created!
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=50.87s).
+Accumulating evaluation results...
+DONE (t=7.24s).
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.511
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.696
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.553
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.346
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.559
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.665
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.384
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.636
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.686
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.536
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.734
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.837
+
+ Result mAP@.5:.95
+ Origin : 0.5117
+ PTQ : 0.5099
+ Best : QAT5 0.5107
+ Current : QAT8 0.5107
+
+Save qat model to experiments/qat/20240206202935/qat_best_5107.pt @ 0.51071
+
+QAT Finetuning 10 / 10, Loss: 0.36805, LR: 1e-06: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 200/200 [00:49<00:00,  4.08it/s]
+               Class      Images      Labels           P           R      mAP@.5  mAP@.5:.95: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 500/500 [01:02<00:00,  7.99it/s]
+                 all        5000       36335       0.735       0.627       0.689       0.496
+
+Evaluating pycocotools mAP... saving experiments/qat/20240206202935/_predictions.json...
+loading annotations into memory...
+Done (t=0.44s)
+creating index...
+index created!
+Loading and preparing results...
+DONE (t=3.21s)
+creating index...
+index created!
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=50.83s).
+Accumulating evaluation results...
+DONE (t=7.26s).
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.511
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.696
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.554
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.354
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.559
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.666
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.384
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.636
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.686
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.536
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.736
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.836
+
+ Result mAP@.5:.95
+ Origin : 0.5117
+ PTQ : 0.5099
+ Best : QAT9 0.5108
+ Current : QAT9 0.5108
+
+Save qat model to experiments/qat/20240206202935/qat_best_5108.pt @ 0.51085
+
